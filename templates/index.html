@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Image Upscaler</title>
+</head>
+<body>
+    <header>
+        <h1>Image Upscaler</h1>
+    </header>
+    
+    <div class="container">
+        <form id="model-form" action="/select_model" method="post">
+            <label for="model_select">Select a model:</label>
+            <select name="model_select">
+                {% for model in available_models %}
+                    <option value="{{ model }}">{{ model }}</option>
+                {% endfor %}
+            </select>
+            <div id="loading-icon2" class="loading-icon2">
+                <img id="loading-image2" src="/static/loading.png" alt="Loading">
+            </div>
+        </form>
+    </div>
+
+    <div class="container">
+        <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+            <label for="image">Upload an image:</label>
+            <input type="file"  accept="image/*" name="image" id="file"  onchange="loadInput(event)">
+            
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <div class="result-container">
+            <div class="image-container">
+                <h2>Input:</h2>
+                <img id="input-image" src="" alt="Input Image">
+            </div>
+            <div class="image-container">
+                <h2>Output:</h2>
+                <div id="loading-icon" class="loading-icon">
+                    <img id="loading-image" src="/static/loading.png" alt="Loading">
+                </div>
+                <img id="output-image" src="" alt="Output Image">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loading-icon').style.display = 'none';
+        document.getElementById('loading-image').style.display = 'none';
+        document.getElementById('loading-icon2').style.display = 'none';
+        document.getElementById('loading-image2').style.display = 'none';
+
+        var loadInput = function(event) {
+            var image = document.getElementById('input-image');
+            image.src = URL.createObjectURL(event.target.files[0]);
+            image.style.display = 'flex';
+            var output = document.getElementById('output-image');
+            output.src = "";
+            output.style.display = 'none';
+        };
+    
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitForm();
+        });
+
+        document.getElementById('model-form').addEventListener('change', function() {
+            console.log("model changed")
+            submitModelForm();
+        });
+    
+        function submitForm() {
+            var image = document.getElementById('output-image');
+            var loadingContainer = document.getElementById('loading-icon');
+            var loadingIcon = document.getElementById('loading-image');
+            image.src = "";
+            image.style.display = 'none';
+            var formData = new FormData(document.getElementById('upload-form'));
+            loadingContainer.style.display = 'block';
+            loadingIcon.style.display = 'block';
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                checkImageAvailability(image);
+                loadingIcon.style.display = 'none';
+                loadingContainer.style.display = 'none';
+            });
+        }
+        
+        function submitModelForm() {
+            var modelForm = document.getElementById('model-form');
+            var loadingContainer2 = document.getElementById('loading-icon2');
+            var loadingIcon2 = document.getElementById('loading-image2');
+            var formData = new FormData(modelForm);
+            loadingContainer2.style.display = 'block';
+            loadingIcon2.style.display = 'block';
+            fetch('/select_model', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                console.log(response);
+                loadingIcon2.style.display = 'none';
+                loadingContainer2.style.display = 'none';
+            });
+        }
+
+        function checkImageAvailability(image) {
+            setTimeout(function(){
+                console.log("waiting for file to be deleted");
+            }, 200);
+            fetch('/outputs/upscaled.png').then(response => {
+                if (response.status === 200) {
+                    image.src = '/outputs/upscaled.png';
+                    image.style.display = 'flex';
+                } else {
+                    setTimeout(checkImageAvailability, 100);
+                }
+            });
+        }
+    </script>
+
+
+
+</body>
+</html>
